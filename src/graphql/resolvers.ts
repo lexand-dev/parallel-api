@@ -4,16 +4,12 @@ import type { Request, Response } from "express";
 import { signin, signup } from "@/features/auth/lib";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 
-import type { LoginType, RegisterType } from "./schemas";
+import type { LoginInput, RegisterInput, UserType } from "./types";
 
 interface MyContext {
   req: Request;
   res: Response;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
+  user: UserType | null;
 }
 
 export const resolvers = {
@@ -33,7 +29,7 @@ export const resolvers = {
     }
   },
   Mutation: {
-    signup: async (_: any, input: RegisterType, { res }: MyContext) => {
+    signup: async (_: any, input: RegisterInput, { res }: MyContext) => {
       const { email, password, name } = input;
       const token = await signup({
         name,
@@ -54,7 +50,7 @@ export const resolvers = {
         message: "User registered successfully"
       };
     },
-    signin: async (_: any, input: LoginType, { res, req }: MyContext) => {
+    signin: async (_: any, input: LoginInput, { res, req }: MyContext) => {
       const { email, password } = input;
 
       const token = await signin({
