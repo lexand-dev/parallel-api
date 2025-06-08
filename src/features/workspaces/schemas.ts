@@ -22,3 +22,16 @@ export const createWorkspaceSchema = z.object({
 });
 
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
+
+export const updateWorkspaceSchema = z.object({
+  id: z.string().trim().min(1, "Workspace ID is required"),
+  name: z.string().trim().min(1, "Name workspace is required"),
+  image: z
+    .union([
+      z.instanceof(File),
+      z.string().transform((value) => (value === "" ? undefined : value))
+    ])
+    .optional()
+});
+
+export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;

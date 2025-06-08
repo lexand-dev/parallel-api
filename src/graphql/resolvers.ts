@@ -77,7 +77,7 @@ export const resolvers = {
         });
       }
 
-      const workspace = await WorkspaceModel.getWorkspaceById(id, user.id);
+      const workspace = await WorkspaceModel.getWorkspaceById(id);
       if (!workspace) {
         throw new GraphQLError("Workspace not found", {
           extensions: {
@@ -219,6 +219,89 @@ export const resolvers = {
         userId: workspace.userId,
         image: workspace.image,
         inviteCode: workspace.inviteCode
+      };
+    },
+    updateWorkspace: async (
+      _: any,
+      {
+        id,
+        name,
+        image
+      }: {
+        id: string;
+        name: string;
+        image?: { file?: Promise<FileUpload>; url?: string };
+      },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await WorkspaceModel.getMember({
+        workspaceId: id,
+        userId: user.id
+      });
+      if (!member || member.role !== MemberRole.ADMIN) {
+        throw new GraphQLError("Not authorized to update this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      let uploadedImageUrl: string | undefined;
+
+      if (image?.file) {
+        const file: FileUpload = await image.file;
+
+        // Read the file stream and convert it to a Node.js File instance
+        const stream = file.createReadStream();
+        const chunks: Uint8Array[] = [];
+
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+
+        const buffer = Buffer.concat(chunks);
+
+        // Create a Node.js File instance
+        const nodeFile = new File([buffer], file.filename, {
+          type: file.mimetype
+        });
+
+        const result = await utapi.uploadFiles(nodeFile);
+
+        if (!result || result.error) {
+          throw new GraphQLError("Failed to upload image", {
+            extensions: {
+              code: "UPLOAD_FAILED",
+              details: result.error
+            }
+          });
+        }
+
+        uploadedImageUrl = result.data.ufsUrl;
+      } else {
+        uploadedImageUrl = image?.url;
+      }
+
+      const updatedWorkspace = await WorkspaceModel.updateWorkspace({
+        id,
+        name,
+        image: uploadedImageUrl
+      });
+
+      return {
+        id: updatedWorkspace.id,
+        name: updatedWorkspace.name,
+        userId: updatedWorkspace.userId,
+        image: updatedWorkspace.image,
+        inviteCode: updatedWorkspace.inviteCode
       };
     }
   }

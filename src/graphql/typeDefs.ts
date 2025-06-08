@@ -12,7 +12,10 @@ export const typeDefs = gql`
     logout: AuthResponse
     signup(input: AuthInput!): AuthResponse
     signin(email: String!, password: String!): AuthResponse
+
     createWorkspace(name: String!, image: ImageInput): Workspace
+    updateWorkspace(id: ID!, name: String!, image: ImageInput): Workspace
+    deleteWorkspace(id: ID!): Boolean
   }
 
   input AuthInput {

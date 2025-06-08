@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { workspaces, workspaceMembers } from "@/db/schema";
-import type { CreateWorkspaceInput } from "./schemas";
+import type { CreateWorkspaceInput, UpdateWorkspaceInput } from "./schemas";
 import { and, eq } from "drizzle-orm";
 
 export enum MemberRole {
@@ -49,29 +49,36 @@ export class WorkspaceModel {
     return member;
   }
 
-  static async members(userId: string) {
-    const membersList = await db
+  static async getMember({
+    workspaceId,
+    userId
+  }: {
+    workspaceId: string;
+    userId: string;
+  }) {
+    const [member] = await db
       .select()
       .from(workspaceMembers)
-      .where(eq(workspaceMembers.userId, userId));
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.userId, userId)
+        )
+      )
+      .limit(1)
+      .execute();
 
-    return membersList;
+    return member;
   }
 
-  static async updateWorkspace(
-    id: string,
-    userId: string,
-    name?: string,
-    image?: string
-  ) {
-    const updateData: { name?: string; image?: string } = {};
-    if (name) updateData.name = name;
-    if (image) updateData.image = image;
-
+  static async updateWorkspace({ id, name, image }: UpdateWorkspaceInput) {
     const [workspace] = await db
       .update(workspaces)
-      .set(updateData)
-      .where(and(eq(workspaces.id, id), eq(workspaces.userId, userId)))
+      .set({
+        name,
+        image: typeof image === "string" ? image : null
+      })
+      .where(eq(workspaces.id, id))
       .returning();
 
     return workspace;
@@ -95,11 +102,11 @@ export class WorkspaceModel {
     return workspacesList;
   }
 
-  static async getWorkspaceById(id: string, userId: string) {
+  static async getWorkspaceById(id: string) {
     const [workspace] = await db
       .select()
       .from(workspaces)
-      .where(and(eq(workspaces.id, id), eq(workspaces.userId, userId)))
+      .where(eq(workspaces.id, id))
       .limit(1)
       .execute();
 
