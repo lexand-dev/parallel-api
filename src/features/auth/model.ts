@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { GraphQLError } from "graphql";
 
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
@@ -22,12 +23,22 @@ export const signin = async ({
     where: eq(users.email, email)
   });
 
-  if (!match) return null;
+  if (!match) {
+    throw new GraphQLError("Invalid email or password", {
+      extensions: {
+        code: "UNAUTHENTICATED"
+      }
+    });
+  }
 
   const correctPW = await bcrypt.compare(password, match.password);
 
   if (!correctPW) {
-    return null;
+    throw new GraphQLError("Invalid email or password", {
+      extensions: {
+        code: "UNAUTHENTICATED"
+      }
+    });
   }
 
   const token = createTokenForUser(match.id);
@@ -45,6 +56,18 @@ export const signup = async ({
   password: string;
 }) => {
   const hashedPW = await bcrypt.hash(password, 10);
+
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.email, email)
+  });
+
+  if (existingUser) {
+    throw new GraphQLError("Email already exists", {
+      extensions: {
+        code: "BAD_USER_INPUT"
+      }
+    });
+  }
 
   const [newUser] = await db
     .insert(users)

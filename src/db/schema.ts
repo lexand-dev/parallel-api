@@ -1,10 +1,13 @@
 import {
-  integer,
+  pgEnum,
   pgTable,
+  text,
   timestamp,
   uuid,
   varchar
 } from "drizzle-orm/pg-core";
+
+export const userRoles = pgEnum("user_roles", ["ADMIN", "MEMBER"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -25,6 +28,25 @@ export const workspaces = pgTable("workspaces", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  image: text("image"),
+  inviteCode: text("invite_code").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const workspaceMembers = pgTable("workspace_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: userRoles("role").notNull().default("MEMBER"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

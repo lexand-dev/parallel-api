@@ -1,10 +1,19 @@
 import { GraphQLError } from "graphql";
 import type { Request, Response } from "express";
+import GraphQLUpload from "graphql-upload/GraphQLUpload.mjs";
+import type { FileUpload } from "graphql-upload/processRequest.mjs";
 
-import { signin, signup } from "@/features/auth/lib";
+import { utapi } from "@/lib/uploathing";
+
+import type {
+  UserType,
+  LoginInput,
+  RegisterInput
+} from "@/features/auth/schemas";
+import { generateInviteCode } from "@/lib/utils";
+import { signin, signup } from "@/features/auth/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
-
-import type { LoginInput, RegisterInput, UserType } from "./types";
+import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
 
 interface MyContext {
   req: Request;
@@ -12,9 +21,14 @@ interface MyContext {
   user: UserType | null;
 }
 
+interface Input {
+  input: LoginInput | RegisterInput;
+}
+
 export const resolvers = {
+  Upload: GraphQLUpload,
   Query: {
-    current: (_: any, __: any, { user, req }: MyContext) => {
+    current: async (_: any, __: any, { user, req }: MyContext) => {
       if (!user) {
         throw new GraphQLError("Not authenticated", {
           extensions: {
@@ -23,14 +37,69 @@ export const resolvers = {
         });
       }
       return {
+        id: user.id,
         name: user.name,
         email: user.email
+      };
+    },
+    getWorkspaces: async (_: any, __: any, { user }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      // TODO: Fetch members of the user
+
+      const workspaces = await WorkspaceModel.getWorkspacesByUserId(user.id);
+      return workspaces.map((workspace) => ({
+        id: workspace.id,
+        name: workspace.name,
+        createdAt: workspace.createdAt,
+        updatedAt: workspace.updatedAt,
+        userId: workspace.userId,
+        image: workspace.image,
+        members: [] // Assuming members are not fetched here, can be added later
+      }));
+    },
+    getWorkspace: async (
+      _: any,
+      { id }: { id: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const workspace = await WorkspaceModel.getWorkspaceById(id, user.id);
+      if (!workspace) {
+        throw new GraphQLError("Workspace not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      return {
+        id: workspace.id,
+        name: workspace.name,
+        createdAt: workspace.createdAt,
+        updatedAt: workspace.updatedAt,
+        userId: workspace.userId,
+        image: workspace.image,
+        members: [] // Assuming members are not fetched here, can be added later
       };
     }
   },
   Mutation: {
-    signup: async (_: any, input: RegisterInput, { res }: MyContext) => {
-      const { email, password, name } = input;
+    signup: async (_: any, { input }: Input, { res }: MyContext) => {
+      const { email, password, name } = input as RegisterInput;
       const token = await signup({
         name,
         email,
@@ -77,6 +146,79 @@ export const resolvers = {
       return {
         success: true,
         message: "User logged out successfully"
+      };
+    },
+    createWorkspace: async (
+      _: any,
+      {
+        name,
+        image
+      }: { name: string; image?: { file?: Promise<FileUpload>; url?: string } },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      let uploadedImageUrl: string | undefined;
+
+      if (image?.file) {
+        const file: FileUpload = await image.file;
+
+        // Read the file stream and convert it to a Node.js File instance
+        const stream = file.createReadStream();
+        const chunks: Uint8Array[] = [];
+
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+
+        const buffer = Buffer.concat(chunks);
+
+        // Create a Node.js File instance
+        const nodeFile = new File([buffer], file.filename, {
+          type: file.mimetype
+        });
+
+        const result = await utapi.uploadFiles(nodeFile);
+
+        if (!result || result.error) {
+          throw new GraphQLError("Failed to upload image", {
+            extensions: {
+              code: "UPLOAD_FAILED",
+              details: result.error
+            }
+          });
+        }
+
+        uploadedImageUrl = result.data.ufsUrl;
+      } else if (image?.url) {
+        uploadedImageUrl = image.url;
+      }
+
+      const workspace = await WorkspaceModel.createWorkspace({
+        name,
+        userId: user.id,
+        image: uploadedImageUrl,
+        inviteCode: generateInviteCode(6)
+      });
+
+      await WorkspaceModel.addMember({
+        workspaceId: workspace.id,
+        userId: user.id,
+        role: MemberRole.ADMIN
+      });
+
+      return {
+        id: workspace.id,
+        name: workspace.name,
+        userId: workspace.userId,
+        image: workspace.image,
+        inviteCode: workspace.inviteCode
       };
     }
   }

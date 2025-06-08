@@ -1,36 +1,47 @@
 import { gql } from "graphql-tag";
 
 export const typeDefs = gql`
+  scalar Upload
   type Query {
     current: User
-  }
-
-  input AuthInput {
-    email: String!
-    password: String!
-    name: String
-    userId: String
+    getWorkspaces: [Workspace]
+    getWorkspace(id: ID!): Workspace
   }
 
   type Mutation {
-    signup(
-      email: String!
-      password: String!
-      name: String
-      userId: String
-    ): MutationResponse
-    signin(email: String!, password: String!): MutationResponse
-    logout: MutationResponse
+    logout: AuthResponse
+    signup(input: AuthInput!): AuthResponse
+    signin(email: String!, password: String!): AuthResponse
+    createWorkspace(name: String!, image: ImageInput): Workspace
   }
 
-  type MutationResponse {
+  input AuthInput {
+    name: String
+    password: String!
+    email: String!
+  }
+
+  input ImageInput {
+    file: Upload
+    url: String
+  }
+
+  type AuthResponse {
     success: Boolean
     message: String
   }
 
   type User {
-    _id: ID
+    id: ID
     name: String
     email: String
+  }
+
+  type Workspace {
+    id: ID
+    name: String
+    image: String
+    userId: String
+    inviteCode: String
   }
 `;

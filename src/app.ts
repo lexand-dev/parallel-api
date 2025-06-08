@@ -8,6 +8,7 @@ import type { DocumentNode } from "graphql";
 import { ApolloServer } from "@apollo/server";
 import type { IResolvers } from "@graphql-tools/utils";
 import { expressMiddleware } from "@as-integrations/express5";
+import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.mjs";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 
 import { db } from "@/db";
@@ -24,6 +25,7 @@ export async function startApolloServer(
   resolvers: StartApolloServerOptions["resolvers"]
 ): Promise<void> {
   const app: express.Express = express();
+  app.use(graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 1 }));
   const httpServer: http.Server = http.createServer(app);
 
   const server = new ApolloServer({
