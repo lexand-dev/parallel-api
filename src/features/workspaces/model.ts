@@ -112,4 +112,20 @@ export class WorkspaceModel {
 
     return workspace;
   }
+
+  static async resetInviteCode({
+    id,
+    inviteCode
+  }: {
+    id: string;
+    inviteCode: string;
+  }) {
+    const [workspace] = await db
+      .update(workspaces)
+      .set({ inviteCode })
+      .where(eq(workspaces.id, id))
+      .returning();
+
+    return workspace;
+  }
 }

@@ -57,11 +57,9 @@ export const resolvers = {
       return workspaces.map((workspace) => ({
         id: workspace.id,
         name: workspace.name,
-        createdAt: workspace.createdAt,
-        updatedAt: workspace.updatedAt,
-        userId: workspace.userId,
         image: workspace.image,
-        members: [] // Assuming members are not fetched here, can be added later
+        userId: workspace.userId,
+        inviteCode: workspace.inviteCode
       }));
     },
     getWorkspace: async (
@@ -89,11 +87,9 @@ export const resolvers = {
       return {
         id: workspace.id,
         name: workspace.name,
-        createdAt: workspace.createdAt,
-        updatedAt: workspace.updatedAt,
-        userId: workspace.userId,
         image: workspace.image,
-        members: [] // Assuming members are not fetched here, can be added later
+        userId: workspace.userId,
+        inviteCode: workspace.inviteCode
       };
     }
   },
@@ -340,6 +336,45 @@ export const resolvers = {
           userId: result.userId,
           inviteCode: result.inviteCode
         }
+      };
+    },
+    resetInviteCode: async (
+      _: any,
+      { id }: { id: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await WorkspaceModel.getMember({
+        workspaceId: id,
+        userId: user.id
+      });
+
+      if (!member || member.role !== MemberRole.ADMIN) {
+        throw new GraphQLError("Not authorized to reset invite code", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const updatedWorkspace = await WorkspaceModel.resetInviteCode({
+        id,
+        inviteCode: generateInviteCode(6)
+      });
+
+      return {
+        id: updatedWorkspace.id,
+        name: updatedWorkspace.name,
+        image: updatedWorkspace.image,
+        userId: updatedWorkspace.userId,
+        inviteCode: updatedWorkspace.inviteCode
       };
     }
   }

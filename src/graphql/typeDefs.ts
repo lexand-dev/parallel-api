@@ -15,6 +15,7 @@ export const typeDefs = gql`
 
     deleteWorkspace(id: ID!): WorkspaceResponse
     joinWorkspace(inviteCode: String!): Workspace
+    resetInviteCode(id: ID!): Workspace
     createWorkspace(name: String!, image: ImageInput): Workspace
     updateWorkspace(id: ID!, name: String!, image: ImageInput): Workspace
   }
