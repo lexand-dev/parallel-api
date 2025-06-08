@@ -13,9 +13,10 @@ export const typeDefs = gql`
     signup(input: AuthInput!): AuthResponse
     signin(email: String!, password: String!): AuthResponse
 
+    deleteWorkspace(id: ID!): WorkspaceResponse
+    joinWorkspace(inviteCode: String!): Workspace
     createWorkspace(name: String!, image: ImageInput): Workspace
     updateWorkspace(id: ID!, name: String!, image: ImageInput): Workspace
-    deleteWorkspace(id: ID!): Boolean
   }
 
   input AuthInput {
@@ -32,6 +33,12 @@ export const typeDefs = gql`
   type AuthResponse {
     success: Boolean
     message: String
+  }
+
+  type WorkspaceResponse {
+    success: Boolean
+    message: String
+    workspace: Workspace
   }
 
   type User {

@@ -303,6 +303,44 @@ export const resolvers = {
         image: updatedWorkspace.image,
         inviteCode: updatedWorkspace.inviteCode
       };
+    },
+    deleteWorkspace: async (
+      _: any,
+      { id }: { id: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await WorkspaceModel.getMember({
+        workspaceId: id,
+        userId: user.id
+      });
+      if (!member || member.role !== MemberRole.ADMIN) {
+        throw new GraphQLError("Not authorized to delete this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const result = await WorkspaceModel.deleteWorkspace(id);
+      return {
+        success: true,
+        message: "Workspace deleted successfully",
+        workspace: {
+          id: result.id,
+          name: result.name,
+          image: result.image,
+          userId: result.userId,
+          inviteCode: result.inviteCode
+        }
+      };
     }
   }
 };

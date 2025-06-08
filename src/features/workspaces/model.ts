@@ -84,10 +84,10 @@ export class WorkspaceModel {
     return workspace;
   }
 
-  static async deleteWorkspace(id: string, userId: string) {
-    const result = await db
+  static async deleteWorkspace(id: string) {
+    const [result] = await db
       .delete(workspaces)
-      .where(and(eq(workspaces.id, id), eq(workspaces.userId, userId)))
+      .where(eq(workspaces.id, id))
       .returning();
 
     return result;
