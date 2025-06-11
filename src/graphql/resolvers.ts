@@ -14,6 +14,7 @@ import { generateInviteCode } from "@/lib/utils";
 import { signin, signup } from "@/features/auth/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
+import { console } from "inspector";
 
 interface MyContext {
   req: Request;
@@ -51,9 +52,8 @@ export const resolvers = {
         });
       }
 
-      // TODO: Fetch members of the user
+      const workspaces = await WorkspaceModel.getWorkspacesbyMember(user.id);
 
-      const workspaces = await WorkspaceModel.getWorkspacesByUserId(user.id);
       return workspaces.map((workspace) => ({
         id: workspace.id,
         name: workspace.name,
@@ -63,6 +63,48 @@ export const resolvers = {
       }));
     },
     getWorkspace: async (
+      _: any,
+      { id }: { id: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await WorkspaceModel.getMember({
+        workspaceId: id,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const workspace = await WorkspaceModel.getWorkspaceById(id);
+      if (!workspace) {
+        throw new GraphQLError("Workspace not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      return {
+        id: workspace.id,
+        name: workspace.name,
+        image: workspace.image,
+        userId: workspace.userId,
+        inviteCode: workspace.inviteCode
+      };
+    },
+    getWorkspaceInfo: async (
       _: any,
       { id }: { id: string },
       { user }: MyContext
@@ -85,11 +127,7 @@ export const resolvers = {
       }
 
       return {
-        id: workspace.id,
-        name: workspace.name,
-        image: workspace.image,
-        userId: workspace.userId,
-        inviteCode: workspace.inviteCode
+        name: workspace.name
       };
     }
   },

@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { workspaces, workspaceMembers } from "@/db/schema";
 import type { CreateWorkspaceInput, UpdateWorkspaceInput } from "./schemas";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export enum MemberRole {
   ADMIN = "ADMIN",
@@ -35,7 +35,7 @@ export class WorkspaceModel {
   }: {
     workspaceId: string;
     userId: string;
-    role?: MemberRole;
+    role: MemberRole;
   }) {
     const [member] = await db
       .insert(workspaceMembers)
@@ -93,13 +93,33 @@ export class WorkspaceModel {
     return result;
   }
 
-  static async getWorkspacesByUserId(userId: string) {
+  static async getWorkspacesbyMember(userId: string) {
     const workspacesList = await db
       .select()
-      .from(workspaces)
-      .where(eq(workspaces.userId, userId));
+      .from(workspaceMembers)
+      .where(eq(workspaceMembers.userId, userId));
 
-    return workspacesList;
+    if (!workspacesList.length) {
+      throw new Error("No workspaces found for the user");
+    }
+
+    const workspaceIds = workspacesList.map((member) => member.workspaceId);
+
+    const getWorkspacesbyMember = await db
+      .select()
+      .from(workspaces)
+      .where(inArray(workspaces.id, workspaceIds))
+      .execute();
+
+    if (!getWorkspacesbyMember.length) {
+      throw new Error("No workspaces found for the user");
+    }
+
+    if (getWorkspacesbyMember.length !== workspaceIds.length) {
+      throw new Error("Some workspaces not found for the user");
+    }
+    // TODO: Verify if workspaces exist for this member
+    return getWorkspacesbyMember;
   }
 
   static async getWorkspaceById(id: string) {

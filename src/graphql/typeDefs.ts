@@ -6,6 +6,7 @@ export const typeDefs = gql`
     current: User
     getWorkspaces: [Workspace]
     getWorkspace(id: ID!): Workspace
+    getWorkspaceInfo(id: ID!): WorkspaceInfo
   }
 
   type Mutation {
@@ -14,7 +15,7 @@ export const typeDefs = gql`
     signin(email: String!, password: String!): AuthResponse
 
     deleteWorkspace(id: ID!): WorkspaceResponse
-    joinWorkspace(inviteCode: String!, workspaceId: String!): Workspace
+    joinWorkspace(inviteCode: String!, workspaceId: ID!): Workspace
     resetInviteCode(id: ID!): Workspace
     createWorkspace(name: String!, image: ImageInput): Workspace
     updateWorkspace(id: ID!, name: String!, image: ImageInput): Workspace
@@ -40,6 +41,10 @@ export const typeDefs = gql`
     success: Boolean
     message: String
     workspace: Workspace
+  }
+
+  type WorkspaceInfo {
+    name: String
   }
 
   type User {
