@@ -376,6 +376,45 @@ export const resolvers = {
         userId: updatedWorkspace.userId,
         inviteCode: updatedWorkspace.inviteCode
       };
+    },
+    joinWorkspace: async (
+      _: any,
+      { inviteCode, workspaceId }: { inviteCode: string; workspaceId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const existingMember = await WorkspaceModel.getMember({
+        workspaceId,
+        userId: user.id
+      });
+
+      if (existingMember) {
+        throw new GraphQLError("You are already a member of this workspace", {
+          extensions: {
+            code: "ALREADY_EXISTS"
+          }
+        });
+      }
+
+      const workspace = await WorkspaceModel.joinWorkspace({
+        inviteCode,
+        userId: user.id
+      });
+
+      return {
+        id: workspace.id,
+        name: workspace.name,
+        image: workspace.image,
+        userId: workspace.userId,
+        inviteCode: workspace.inviteCode
+      };
     }
   }
 };

@@ -14,7 +14,7 @@ export const typeDefs = gql`
     signin(email: String!, password: String!): AuthResponse
 
     deleteWorkspace(id: ID!): WorkspaceResponse
-    joinWorkspace(inviteCode: String!): Workspace
+    joinWorkspace(inviteCode: String!, workspaceId: String!): Workspace
     resetInviteCode(id: ID!): Workspace
     createWorkspace(name: String!, image: ImageInput): Workspace
     updateWorkspace(id: ID!, name: String!, image: ImageInput): Workspace

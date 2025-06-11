@@ -128,4 +128,31 @@ export class WorkspaceModel {
 
     return workspace;
   }
+
+  static async joinWorkspace({
+    inviteCode,
+    userId
+  }: {
+    inviteCode: string;
+    userId: string;
+  }) {
+    const [workspace] = await db
+      .select()
+      .from(workspaces)
+      .where(eq(workspaces.inviteCode, inviteCode))
+      .limit(1)
+      .execute();
+
+    if (!workspace) {
+      throw new Error("Workspace not found");
+    }
+
+    await this.addMember({
+      workspaceId: workspace.id,
+      userId,
+      role: MemberRole.MEMBER
+    });
+
+    return workspace;
+  }
 }
