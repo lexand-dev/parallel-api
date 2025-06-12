@@ -12,9 +12,10 @@ import type {
 } from "@/features/auth/schemas";
 import { generateInviteCode } from "@/lib/utils";
 import { signin, signup } from "@/features/auth/model";
+import { MembersModel } from "@/features/members/model";
+import { ProjectsModel } from "@/features/projects/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
-import { MembersModel } from "@/features/members/model";
 
 interface MyContext {
   req: Request;
@@ -159,6 +160,80 @@ export const resolvers = {
 
       return {
         name: workspace.name
+      };
+    },
+    getProjects: async (
+      _: any,
+      { workspaceId }: { workspaceId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const projects = await ProjectsModel.getProjects(workspaceId);
+      return projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        image: project.image,
+        workspaceId: project.workspaceId
+      }));
+    },
+    getProject: async (
+      _: any,
+      { projectId }: { projectId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const project = await ProjectsModel.getProject(projectId);
+      if (!project) {
+        throw new GraphQLError("Project not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: project.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      return {
+        id: project.id,
+        name: project.name,
+        image: project.image,
+        workspaceId: project.workspaceId
       };
     }
   },
@@ -569,6 +644,222 @@ export const resolvers = {
       return {
         success: true,
         message: `Member role updated to ${role}`
+      };
+    },
+
+    createProject: async (
+      _: any,
+      {
+        name,
+        workspaceId,
+        image
+      }: {
+        name: string;
+        workspaceId: string;
+        image?: { file?: Promise<FileUpload>; url?: string };
+      },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      let uploadedImageUrl: string | undefined;
+
+      if (image?.file) {
+        const file: FileUpload = await image.file;
+
+        // Read the file stream and convert it to a Node.js File instance
+        const stream = file.createReadStream();
+        const chunks: Uint8Array[] = [];
+
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+
+        const buffer = Buffer.concat(chunks);
+
+        // Create a Node.js File instance
+        const nodeFile = new File([buffer], file.filename, {
+          type: file.mimetype
+        });
+
+        const result = await utapi.uploadFiles(nodeFile);
+
+        if (!result || result.error) {
+          throw new GraphQLError("Failed to upload image", {
+            extensions: {
+              code: "UPLOAD_FAILED",
+              details: result.error
+            }
+          });
+        }
+
+        uploadedImageUrl = result.data.ufsUrl;
+      } else if (image?.url) {
+        uploadedImageUrl = image.url;
+      }
+
+      const project = await ProjectsModel.createProject({
+        name,
+        workspaceId,
+        image: uploadedImageUrl
+      });
+
+      return {
+        id: project.id,
+        name: project.name,
+        image: project.image,
+        workspaceId: project.workspaceId
+      };
+    },
+    updateProject: async (
+      _: any,
+      {
+        id,
+        name,
+        image
+      }: {
+        id: string;
+        name: string;
+        image?: { file?: Promise<FileUpload>; url?: string };
+      },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const project = await ProjectsModel.getProject(id);
+      if (!project) {
+        throw new GraphQLError("Project not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: project.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      let uploadedImageUrl: string | undefined;
+
+      if (image?.file) {
+        const file: FileUpload = await image.file;
+
+        // Read the file stream and convert it to a Node.js File instance
+        const stream = file.createReadStream();
+        const chunks: Uint8Array[] = [];
+
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+
+        const buffer = Buffer.concat(chunks);
+
+        // Create a Node.js File instance
+        const nodeFile = new File([buffer], file.filename, {
+          type: file.mimetype
+        });
+
+        const result = await utapi.uploadFiles(nodeFile);
+
+        if (!result || result.error) {
+          throw new GraphQLError("Failed to upload image", {
+            extensions: {
+              code: "UPLOAD_FAILED",
+              details: result.error
+            }
+          });
+        }
+
+        uploadedImageUrl = result.data.ufsUrl;
+      } else if (image?.url) {
+        uploadedImageUrl = image.url;
+      }
+
+      const updatedProject = await ProjectsModel.updateProject(id, {
+        name,
+        image: uploadedImageUrl
+      });
+
+      return {
+        id: updatedProject.id,
+        name: updatedProject.name,
+        image: updatedProject.image,
+        workspaceId: updatedProject.workspaceId
+      };
+    },
+    deleteProject: async (
+      _: any,
+      { id }: { id: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const project = await ProjectsModel.getProject(id);
+      if (!project) {
+        throw new GraphQLError("Project not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: project.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const deletedProject = await ProjectsModel.deleteProject(id);
+
+      return {
+        id: deletedProject.id,
+        name: deletedProject.name,
+        image: deletedProject.image,
+        workspaceId: deletedProject.workspaceId
       };
     }
   }

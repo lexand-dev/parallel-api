@@ -7,6 +7,8 @@ export const typeDefs = gql`
     getWorkspaces: [Workspace]
     getWorkspace(id: ID!): Workspace
     getWorkspaceInfo(id: ID!): WorkspaceInfo
+    getProjects(workspaceId: ID!): [Project]
+    getProject(projectId: ID!): Project
   }
 
   type Mutation {
@@ -25,6 +27,10 @@ export const typeDefs = gql`
       role: MemberRole!
       workspaceId: ID!
     ): SuccessResponse
+
+    createProject(name: String!, workspaceId: ID!, image: ImageInput): Project
+    updateProject(id: ID!, name: String!, image: ImageInput): Project
+    deleteProject(id: ID!): Project
   }
 
   enum MemberRole {
@@ -72,5 +78,12 @@ export const typeDefs = gql`
     userId: String
     inviteCode: String
     members: [Member]
+  }
+
+  type Project {
+    id: ID
+    name: String
+    image: String
+    workspaceId: String
   }
 `;
