@@ -49,28 +49,6 @@ export class WorkspaceModel {
     return member;
   }
 
-  static async getMember({
-    workspaceId,
-    userId
-  }: {
-    workspaceId: string;
-    userId: string;
-  }) {
-    const [member] = await db
-      .select()
-      .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.workspaceId, workspaceId),
-          eq(workspaceMembers.userId, userId)
-        )
-      )
-      .limit(1)
-      .execute();
-
-    return member;
-  }
-
   static async updateWorkspace({ id, name, image }: UpdateWorkspaceInput) {
     const [workspace] = await db
       .update(workspaces)

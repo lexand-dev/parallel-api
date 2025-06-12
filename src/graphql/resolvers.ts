@@ -14,7 +14,7 @@ import { generateInviteCode } from "@/lib/utils";
 import { signin, signup } from "@/features/auth/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
-import { console } from "inspector";
+import { MembersModel } from "@/features/members/model";
 
 interface MyContext {
   req: Request;
@@ -28,6 +28,37 @@ interface Input {
 
 export const resolvers = {
   Upload: GraphQLUpload,
+  Workspace: {
+    members: async (workspace: { id: string }, _: any, { user }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: workspace.id,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const members = await MembersModel.getMembers(workspace.id);
+      return members.map((member) => ({
+        id: member.userId,
+        name: member.name,
+        role: member.role,
+        email: member.email
+      }));
+    }
+  },
   Query: {
     current: async (_: any, __: any, { user, req }: MyContext) => {
       if (!user) {
@@ -75,7 +106,7 @@ export const resolvers = {
         });
       }
 
-      const member = await WorkspaceModel.getMember({
+      const member = await MembersModel.getMember({
         workspaceId: id,
         userId: user.id
       });
@@ -276,7 +307,7 @@ export const resolvers = {
         });
       }
 
-      const member = await WorkspaceModel.getMember({
+      const member = await MembersModel.getMember({
         workspaceId: id,
         userId: user.id
       });
@@ -351,7 +382,7 @@ export const resolvers = {
         });
       }
 
-      const member = await WorkspaceModel.getMember({
+      const member = await MembersModel.getMember({
         workspaceId: id,
         userId: user.id
       });
@@ -363,17 +394,11 @@ export const resolvers = {
         });
       }
 
-      const result = await WorkspaceModel.deleteWorkspace(id);
+      await WorkspaceModel.deleteWorkspace(id);
+
       return {
         success: true,
-        message: "Workspace deleted successfully",
-        workspace: {
-          id: result.id,
-          name: result.name,
-          image: result.image,
-          userId: result.userId,
-          inviteCode: result.inviteCode
-        }
+        message: "Workspace deleted successfully"
       };
     },
     resetInviteCode: async (
@@ -389,7 +414,7 @@ export const resolvers = {
         });
       }
 
-      const member = await WorkspaceModel.getMember({
+      const member = await MembersModel.getMember({
         workspaceId: id,
         userId: user.id
       });
@@ -428,7 +453,7 @@ export const resolvers = {
         });
       }
 
-      const existingMember = await WorkspaceModel.getMember({
+      const existingMember = await MembersModel.getMember({
         workspaceId,
         userId: user.id
       });
@@ -452,6 +477,98 @@ export const resolvers = {
         image: workspace.image,
         userId: workspace.userId,
         inviteCode: workspace.inviteCode
+      };
+    },
+    removeMember: async (
+      _: any,
+      { memberId, workspaceId }: { memberId: string; workspaceId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const allMemberInWorkspace = await MembersModel.getMembers(workspaceId);
+      if (allMemberInWorkspace.length <= 1) {
+        throw new GraphQLError(
+          "Cannot remove the last member from a workspace",
+          {
+            extensions: {
+              code: "INVALID_OPERATION"
+            }
+          }
+        );
+      }
+
+      const currentUserMember = await MembersModel.getMember({
+        workspaceId: workspaceId,
+        userId: user.id
+      });
+      if (!currentUserMember || currentUserMember.role !== MemberRole.ADMIN) {
+        throw new GraphQLError("Not authorized to remove members", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      await MembersModel.removeMember(memberId);
+
+      return {
+        success: true,
+        message: `Member removed successfully`
+      };
+    },
+    updateRole: async (
+      _: any,
+      {
+        memberId,
+        role,
+        workspaceId
+      }: { memberId: string; role: MemberRole; workspaceId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const allMemberInWorkspace = await MembersModel.getMembers(workspaceId);
+      if (allMemberInWorkspace.length <= 1) {
+        throw new GraphQLError(
+          "Cannot update role of the last member in a workspace",
+          {
+            extensions: {
+              code: "INVALID_OPERATION"
+            }
+          }
+        );
+      }
+
+      const currentUserMember = await MembersModel.getMember({
+        workspaceId: workspaceId,
+        userId: user.id
+      });
+      if (!currentUserMember || currentUserMember.role !== MemberRole.ADMIN) {
+        throw new GraphQLError("Not authorized to update member roles", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      await MembersModel.updateRole(memberId, role);
+
+      return {
+        success: true,
+        message: `Member role updated to ${role}`
       };
     }
   }

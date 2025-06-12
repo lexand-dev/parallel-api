@@ -10,15 +10,26 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    logout: AuthResponse
-    signup(input: AuthInput!): AuthResponse
-    signin(email: String!, password: String!): AuthResponse
+    logout: SuccessResponse
+    signup(input: AuthInput!): SuccessResponse
+    signin(email: String!, password: String!): SuccessResponse
 
-    deleteWorkspace(id: ID!): WorkspaceResponse
+    deleteWorkspace(id: ID!): SuccessResponse
     joinWorkspace(inviteCode: String!, workspaceId: ID!): Workspace
     resetInviteCode(id: ID!): Workspace
     createWorkspace(name: String!, image: ImageInput): Workspace
     updateWorkspace(id: ID!, name: String!, image: ImageInput): Workspace
+    removeMember(memberId: ID!, workspaceId: ID!): SuccessResponse
+    updateRole(
+      memberId: ID!
+      role: MemberRole!
+      workspaceId: ID!
+    ): SuccessResponse
+  }
+
+  enum MemberRole {
+    ADMIN
+    MEMBER
   }
 
   input AuthInput {
@@ -32,15 +43,9 @@ export const typeDefs = gql`
     url: String
   }
 
-  type AuthResponse {
+  type SuccessResponse {
     success: Boolean
     message: String
-  }
-
-  type WorkspaceResponse {
-    success: Boolean
-    message: String
-    workspace: Workspace
   }
 
   type WorkspaceInfo {
@@ -53,11 +58,19 @@ export const typeDefs = gql`
     email: String
   }
 
+  type Member {
+    id: ID
+    name: String
+    role: MemberRole
+    email: String
+  }
+
   type Workspace {
     id: ID
     name: String
     image: String
     userId: String
     inviteCode: String
+    members: [Member]
   }
 `;
