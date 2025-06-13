@@ -45,6 +45,17 @@ export class MembersModel {
     return member;
   }
 
+  static async getMemberById(memberId: string) {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, memberId))
+      .limit(1)
+      .execute();
+
+    return user;
+  }
+
   static async removeMember(memberId: string) {
     const [member] = await db
       .delete(workspaceMembers)

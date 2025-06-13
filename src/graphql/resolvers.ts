@@ -16,6 +16,8 @@ import { MembersModel } from "@/features/members/model";
 import { ProjectsModel } from "@/features/projects/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
+import type { Task, TaskSearch } from "@/features/tasks/schemas";
+import { TaskModel } from "@/features/tasks/model";
 
 interface MyContext {
   req: Request;
@@ -58,6 +60,67 @@ export const resolvers = {
         role: member.role,
         email: member.email
       }));
+    }
+  },
+  Task: {
+    assignee: async (task: Task, _: any, { user }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: task.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const assignee = await MembersModel.getMemberById(task.assigneeId);
+
+      return {
+        id: assignee.id,
+        name: assignee.name,
+        email: assignee.email
+      };
+    },
+    project: async (task: Task, _: any, { user }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: task.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const project = await ProjectsModel.getProject(task.projectId);
+
+      return {
+        id: project.id,
+        name: project.name,
+        image: project.image,
+        workspaceId: project.workspaceId
+      };
     }
   },
   Query: {
@@ -162,6 +225,37 @@ export const resolvers = {
         name: workspace.name
       };
     },
+    getMembers: async (
+      _: any,
+      { workspaceId }: { workspaceId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+      const member = await MembersModel.getMember({
+        workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+      const members = await MembersModel.getMembers(workspaceId);
+      return members.map((member) => ({
+        id: member.userId,
+        name: member.name,
+        role: member.role,
+        email: member.email
+      }));
+    },
     getProjects: async (
       _: any,
       { workspaceId }: { workspaceId: string },
@@ -234,6 +328,87 @@ export const resolvers = {
         name: project.name,
         image: project.image,
         workspaceId: project.workspaceId
+      };
+    },
+    getTasks: async (
+      _: any,
+      {
+        workspaceId,
+        projectId,
+        assigneeId,
+        status,
+        search,
+        dueDate
+      }: TaskSearch,
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: workspaceId ? workspaceId : "",
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const tasks = await TaskModel.getTasks({
+        workspaceId,
+        projectId,
+        assigneeId,
+        status,
+        search,
+        dueDate
+      });
+
+      return tasks.map((task) => ({
+        ...task,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null
+      }));
+    },
+    getTask: async (_: any, { id }: { id: string }, { user }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const task = await TaskModel.getTaskById(id);
+      if (!task) {
+        throw new GraphQLError("Task not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: task.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      return {
+        ...task,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null
       };
     }
   },
@@ -860,6 +1035,141 @@ export const resolvers = {
         name: deletedProject.name,
         image: deletedProject.image,
         workspaceId: deletedProject.workspaceId
+      };
+    },
+
+    createTask: async (
+      _: any,
+      { name, status, workspaceId, projectId, dueDate, assigneeId }: Task,
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+      console.log("🔍 Tipo:", typeof dueDate);
+
+      const member = await MembersModel.getMember({
+        workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const task = await TaskModel.createTask({
+        name,
+        status,
+        workspaceId,
+        projectId,
+        dueDate,
+        assigneeId
+      });
+      console.log("Created task:", task);
+
+      return {
+        id: task.id,
+        name: task.name,
+        status: task.status,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        dueDate: task.dueDate,
+        assigneeId: task.assigneeId,
+        position: task.position,
+        description: task.description
+      };
+    },
+    updateTask: async (
+      _: any,
+      { id, name, status, dueDate, projectId, assigneeId }: Task,
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      if (!id) {
+        throw new GraphQLError("Task ID is required", {
+          extensions: {
+            code: "BAD_USER_INPUT"
+          }
+        });
+      }
+      const taskWorkspace = await TaskModel.getTaskById(id);
+
+      const member = await MembersModel.getMember({
+        workspaceId: taskWorkspace.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const task = await TaskModel.updateTask({
+        id,
+        name,
+        status,
+        dueDate,
+        projectId,
+        assigneeId
+      });
+
+      return {
+        id: task.id,
+        name: task.name,
+        status: task.status,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        dueDate: task.dueDate?.toISOString()
+      };
+    },
+    deleteTask: async (_: any, { id }: { id: string }, { user }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const task = await TaskModel.getTaskById(id);
+
+      const member = await MembersModel.getMember({
+        workspaceId: task.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      await TaskModel.deleteTask(id);
+
+      return {
+        id: task.id,
+        name: task.name,
+        status: task.status,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        dueDate: task.dueDate?.toISOString()
       };
     }
   }

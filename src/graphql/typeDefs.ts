@@ -2,13 +2,37 @@ import { gql } from "graphql-tag";
 
 export const typeDefs = gql`
   scalar Upload
+
+  enum MemberRole {
+    ADMIN
+    MEMBER
+  }
+
+  enum TaskStatus {
+    BACKLOG
+    TODO
+    IN_PROGRESS
+    IN_REVIEW
+    DONE
+  }
+
   type Query {
     current: User
     getWorkspaces: [Workspace]
     getWorkspace(id: ID!): Workspace
     getWorkspaceInfo(id: ID!): WorkspaceInfo
+    getMembers(workspaceId: ID!): [Member]
     getProjects(workspaceId: ID!): [Project]
     getProject(projectId: ID!): Project
+    getTasks(
+      workspaceId: ID!
+      projectId: ID
+      assigneeId: ID
+      status: TaskStatus
+      search: String
+      dueDate: String
+    ): [Task]
+    getTask(id: ID!): Task
   }
 
   type Mutation {
@@ -31,11 +55,24 @@ export const typeDefs = gql`
     createProject(name: String!, workspaceId: ID!, image: ImageInput): Project
     updateProject(id: ID!, name: String!, image: ImageInput): Project
     deleteProject(id: ID!): Project
-  }
 
-  enum MemberRole {
-    ADMIN
-    MEMBER
+    createTask(
+      name: String!
+      status: TaskStatus!
+      workspaceId: ID!
+      projectId: ID!
+      dueDate: String!
+      assigneeId: ID!
+    ): Task
+    updateTask(
+      id: ID!
+      name: String!
+      status: TaskStatus!
+      dueDate: String!
+      projectId: ID!
+      assigneeId: ID!
+    ): Task
+    deleteTask(id: ID!): Task
   }
 
   input AuthInput {
@@ -85,5 +122,19 @@ export const typeDefs = gql`
     name: String
     image: String
     workspaceId: String
+  }
+
+  type Task {
+    id: ID
+    name: String
+    status: TaskStatus
+    workspaceId: String
+    projectId: String
+    dueDate: String
+    assigneeId: String
+    description: String
+    position: Int
+    assignee: User
+    project: Project
   }
 `;
