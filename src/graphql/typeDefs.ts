@@ -73,6 +73,7 @@ export const typeDefs = gql`
       assigneeId: ID!
     ): Task
     deleteTask(id: ID!): Task
+    bulkUpdateTasks(tasks: [BulkTask!]!): [Task]
   }
 
   input AuthInput {
@@ -136,5 +137,11 @@ export const typeDefs = gql`
     position: Int
     assignee: User
     project: Project
+  }
+
+  input BulkTask {
+    id: ID!
+    status: TaskStatus
+    position: Int
   }
 `;

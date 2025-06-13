@@ -16,7 +16,7 @@ import { MembersModel } from "@/features/members/model";
 import { ProjectsModel } from "@/features/projects/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
-import type { Task, TaskSearch } from "@/features/tasks/schemas";
+import type { Task, TaskSearch, BulkTask } from "@/features/tasks/schemas";
 import { TaskModel } from "@/features/tasks/model";
 
 interface MyContext {
@@ -1171,6 +1171,58 @@ export const resolvers = {
         projectId: task.projectId,
         dueDate: task.dueDate?.toISOString()
       };
+    },
+    bulkUpdateTasks: async (
+      _: any,
+      { tasks }: { tasks: BulkTask[] },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      // TODO: check if all tasks belong to the same workspace
+
+      const task = await TaskModel.getTaskById(tasks[0].id);
+      const member = await MembersModel.getMember({
+        workspaceId: task.workspaceId,
+        userId: user.id
+      });
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      if (!tasks || tasks.length === 0) {
+        throw new GraphQLError("No tasks provided for bulk update", {
+          extensions: {
+            code: "BAD_USER_INPUT"
+          }
+        });
+      }
+
+      const updatedTasks = await TaskModel.bulkUpdateTasks(tasks);
+
+      const formattedTasks = updatedTasks.map((task) => ({
+        id: task.id,
+        name: task.name,
+        status: task.status,
+        workspaceId: task.workspaceId,
+        projectId: task.projectId,
+        dueDate: task.dueDate?.toISOString(),
+        position: task.position,
+        assigneeId: task.assigneeId,
+        description: task.description
+      }));
+
+      return formattedTasks;
     }
   }
 };

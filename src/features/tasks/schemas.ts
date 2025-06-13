@@ -28,3 +28,9 @@ export type TaskSearch = z.infer<typeof TaskSearchSchema>;
 
 export type Task = z.infer<typeof TaskSchema>;
 export type UpdateTask = Partial<Task>;
+
+export type BulkTask = {
+  id: string;
+  status: TaskStatus;
+  position: number;
+};
