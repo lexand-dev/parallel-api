@@ -458,8 +458,42 @@ export const resolvers = {
       });
 
       return analytics;
+    },
+    getAnalyticsWorkspace: async (
+      _: any,
+      { workspaceId }: { workspaceId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const member = await MembersModel.getMember({
+        workspaceId: workspaceId,
+        userId: user.id
+      });
+
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      const analytics = await WorkspaceModel.getAnalyticsWorkspace({
+        workspaceId,
+        assigneeId: member.userId
+      });
+
+      return analytics;
     }
   },
+
   Mutation: {
     signup: async (_: any, { input }: Input, { res }: MyContext) => {
       const { email, password, name } = input as RegisterInput;

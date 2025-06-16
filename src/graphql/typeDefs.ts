@@ -33,7 +33,8 @@ export const typeDefs = gql`
       dueDate: String
     ): [Task]
     getTask(id: ID!): Task
-    getAnalyticsProject(projectId: ID!): AnalyticsProject
+    getAnalyticsProject(projectId: ID!): Analytics
+    getAnalyticsWorkspace(workspaceId: ID!): Analytics
   }
 
   type Mutation {
@@ -147,7 +148,7 @@ export const typeDefs = gql`
     position: Int
   }
 
-  type AnalyticsProject {
+  type Analytics {
     taskCount: Int
     taskDifference: Int
     assignedTaskCount: Int
