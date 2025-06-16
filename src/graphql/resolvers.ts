@@ -415,6 +415,49 @@ export const resolvers = {
         ...task,
         dueDate: task.dueDate ? task.dueDate.toISOString() : null
       };
+    },
+    getAnalyticsProject: async (
+      _: any,
+      { projectId }: { projectId: string },
+      { user }: MyContext
+    ) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      const project = await ProjectsModel.getProject(projectId);
+
+      const member = await MembersModel.getMember({
+        workspaceId: project.workspaceId,
+        userId: user.id
+      });
+
+      if (!member) {
+        throw new GraphQLError("Not a member of this workspace", {
+          extensions: {
+            code: "FORBIDDEN"
+          }
+        });
+      }
+
+      if (!project) {
+        throw new GraphQLError("Project not found", {
+          extensions: {
+            code: "NOT_FOUND"
+          }
+        });
+      }
+
+      const analytics = await ProjectsModel.getAnalyticsProject({
+        projectId,
+        assigneeId: member.userId
+      });
+
+      return analytics;
     }
   },
   Mutation: {
@@ -1055,7 +1098,6 @@ export const resolvers = {
           }
         });
       }
-      console.log("🔍 Tipo:", typeof dueDate);
 
       const member = await MembersModel.getMember({
         workspaceId,

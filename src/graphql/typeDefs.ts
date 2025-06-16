@@ -33,6 +33,7 @@ export const typeDefs = gql`
       dueDate: String
     ): [Task]
     getTask(id: ID!): Task
+    getAnalyticsProject(projectId: ID!): AnalyticsProject
   }
 
   type Mutation {
@@ -144,5 +145,18 @@ export const typeDefs = gql`
     id: ID!
     status: TaskStatus
     position: Int
+  }
+
+  type AnalyticsProject {
+    taskCount: Int
+    taskDifference: Int
+    assignedTaskCount: Int
+    assignedTaskDifference: Int
+    completedTaskCount: Int
+    completedTaskDifference: Int
+    incompleteTaskCount: Int
+    incompleteTaskDifference: Int
+    overdueTaskCount: Int
+    overdueTaskDifference: Int
   }
 `;
