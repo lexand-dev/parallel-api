@@ -66,11 +66,12 @@ export const typeDefs = gql`
     ): Task
     updateTask(
       id: ID!
-      name: String!
-      status: TaskStatus!
-      dueDate: String!
-      projectId: ID!
-      assigneeId: ID!
+      name: String
+      status: TaskStatus
+      dueDate: String
+      projectId: ID
+      assigneeId: ID
+      description: String
     ): Task
     deleteTask(id: ID!): Task
     bulkUpdateTasks(tasks: [BulkTask!]!): [Task]

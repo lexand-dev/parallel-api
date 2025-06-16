@@ -16,7 +16,12 @@ import { MembersModel } from "@/features/members/model";
 import { ProjectsModel } from "@/features/projects/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
-import type { Task, TaskSearch, BulkTask } from "@/features/tasks/schemas";
+import type {
+  Task,
+  TaskSearch,
+  BulkTask,
+  UpdateTask
+} from "@/features/tasks/schemas";
 import { TaskModel } from "@/features/tasks/model";
 
 interface MyContext {
@@ -1088,7 +1093,15 @@ export const resolvers = {
     },
     updateTask: async (
       _: any,
-      { id, name, status, dueDate, projectId, assigneeId }: Task,
+      {
+        id,
+        name,
+        status,
+        dueDate,
+        projectId,
+        assigneeId,
+        description
+      }: UpdateTask,
       { user }: MyContext
     ) => {
       if (!user) {
@@ -1126,7 +1139,8 @@ export const resolvers = {
         status,
         dueDate,
         projectId,
-        assigneeId
+        assigneeId,
+        description
       });
 
       return {
@@ -1135,7 +1149,8 @@ export const resolvers = {
         status: task.status,
         workspaceId: task.workspaceId,
         projectId: task.projectId,
-        dueDate: task.dueDate?.toISOString()
+        dueDate: task.dueDate?.toISOString(),
+        description: task.description
       };
     },
     deleteTask: async (_: any, { id }: { id: string }, { user }: MyContext) => {

@@ -123,7 +123,8 @@ export class TaskModel {
     status,
     dueDate,
     projectId,
-    assigneeId
+    assigneeId,
+    description
   }: UpdateTask) {
     if (!id) {
       throw new Error("Task ID must be provided for update.");
@@ -135,7 +136,8 @@ export class TaskModel {
         status,
         projectId,
         dueDate: dueDate ? new Date(dueDate) : null,
-        assigneeId: assigneeId || null
+        assigneeId: assigneeId,
+        description: description
       })
       .where(eq(tasks.id, id))
       .returning();
