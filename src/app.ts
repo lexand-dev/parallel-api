@@ -76,8 +76,8 @@ export async function startApolloServer(
   );
 
   await new Promise<void>((resolve) =>
-    httpServer.listen({ port: process.env.PORT }, resolve)
+    httpServer.listen({ port: process.env.PORT || 4000 }, resolve)
   );
 
-  console.log(`🚀 Server ready at process.env.PORT`);
+  console.log(`🚀 Server ready at ${process.env.PORT}`);
 }
