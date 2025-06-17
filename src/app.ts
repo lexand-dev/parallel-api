@@ -41,7 +41,7 @@ export async function startApolloServer(
   app.use(
     "/graphql",
     cors<cors.CorsRequest>({
-      origin: "http://localhost:3000",
+      origin: ["http://localhost:3000", "https://parallel-psi.vercel.app"],
       credentials: true
     }),
     expressMiddleware(server, {
