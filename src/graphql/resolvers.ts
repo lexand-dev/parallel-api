@@ -507,7 +507,7 @@ export const resolvers = {
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none",
         maxAge: 60 * 60 * 24 * 30
       });
 
@@ -528,7 +528,7 @@ export const resolvers = {
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none",
         maxAge: 60 * 60 * 24 * 30
       });
 
