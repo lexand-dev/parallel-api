@@ -506,7 +506,7 @@ export const resolvers = {
       res.cookie(AUTH_COOKIE_NAME, token, {
         path: "/",
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 60 * 60 * 24 * 30
       });
@@ -527,7 +527,7 @@ export const resolvers = {
       res.cookie(AUTH_COOKIE_NAME, token, {
         path: "/",
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 60 * 60 * 24 * 30
       });
