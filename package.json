@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch ./src/index.ts",
-    "build": "bun build ./src/index.ts --outdir ./dist --target node"
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "start": "bun run ./dist/index.js"
   },
   "dependencies": {
     "@apollo/server": "^4.12.1",
