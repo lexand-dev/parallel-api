@@ -4,12 +4,14 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import cookieParser from "cookie-parser";
-import type { DocumentNode } from "graphql";
+
 import { ApolloServer } from "@apollo/server";
-import type { IResolvers } from "@graphql-tools/utils";
 import { expressMiddleware } from "@as-integrations/express5";
 import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.mjs";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+
+import type { DocumentNode } from "graphql";
+import type { IResolvers } from "@graphql-tools/utils";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -48,25 +50,21 @@ export async function startApolloServer(
       context: async ({ req, res }) => {
         let user = null;
         const session = req.cookies[AUTH_COOKIE_NAME];
-        /* console.log(`➡️  ${req.method} ${req.originalUrl}`); */
-        console.log("Session cookie:", session);
 
         if (session) {
           try {
             const decoded = jwt.verify(session, AUTH_SECRET_NAME) as {
               id: string;
             };
-            console.log("Decoded session:", decoded);
 
             user = await db.query.users.findFirst({
               where: eq(users.id, decoded.id)
             });
-            console.log("User found:", user);
           } catch (error) {
             console.error("Error decoding session token:", error);
           }
         } else {
-          console.log("No session cookie found");
+          console.warn("No session cookie found");
         }
 
         return {

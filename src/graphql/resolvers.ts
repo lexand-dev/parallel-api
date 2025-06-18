@@ -1,28 +1,29 @@
 import { GraphQLError } from "graphql";
-import type { Request, Response } from "express";
 import GraphQLUpload from "graphql-upload/GraphQLUpload.mjs";
+
+import type { Request, Response } from "express";
 import type { FileUpload } from "graphql-upload/processRequest.mjs";
 
 import { utapi } from "@/lib/uploathing";
-
-import type {
-  UserType,
-  LoginInput,
-  RegisterInput
-} from "@/features/auth/schemas";
 import { generateInviteCode } from "@/lib/utils";
+import { TaskModel } from "@/features/tasks/model";
 import { signin, signup } from "@/features/auth/model";
 import { MembersModel } from "@/features/members/model";
 import { ProjectsModel } from "@/features/projects/model";
 import { AUTH_COOKIE_NAME } from "@/features/auth/constants";
 import { MemberRole, WorkspaceModel } from "@/features/workspaces/model";
+
 import type {
   Task,
   TaskSearch,
   BulkTask,
   UpdateTask
 } from "@/features/tasks/schemas";
-import { TaskModel } from "@/features/tasks/model";
+import type {
+  UserType,
+  LoginInput,
+  RegisterInput
+} from "@/features/auth/schemas";
 
 interface MyContext {
   req: Request;
