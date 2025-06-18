@@ -41,24 +41,27 @@ export async function startApolloServer(
   app.use(
     "/graphql",
     cors<cors.CorsRequest>({
-      origin: "https://parallel-psi.vercel.app",
+      origin: ["https://parallel-psi.vercel.app", "http://localhost:3000"],
       credentials: true
     }),
     expressMiddleware(server, {
       context: async ({ req, res }) => {
         let user = null;
         const session = req.cookies[AUTH_COOKIE_NAME];
-        console.log(`➡️  ${req.method} ${req.originalUrl}`);
+        /* console.log(`➡️  ${req.method} ${req.originalUrl}`); */
+        console.log("Session cookie:", session);
 
         if (session) {
           try {
             const decoded = jwt.verify(session, AUTH_SECRET_NAME) as {
               id: string;
             };
+            console.log("Decoded session:", decoded);
 
             user = await db.query.users.findFirst({
               where: eq(users.id, decoded.id)
             });
+            console.log("User found:", user);
           } catch (error) {
             console.error("Error decoding session token:", error);
           }

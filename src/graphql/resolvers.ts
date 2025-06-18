@@ -504,11 +504,10 @@ export const resolvers = {
       });
 
       res.cookie(AUTH_COOKIE_NAME, token, {
-        path: "/",
+        maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
-        maxAge: 60 * 60 * 24 * 30
+        sameSite: "lax"
       });
 
       return {
@@ -525,11 +524,10 @@ export const resolvers = {
       });
 
       res.cookie(AUTH_COOKIE_NAME, token, {
-        path: "/",
+        maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
-        maxAge: 60 * 60 * 24 * 30
+        sameSite: "lax"
       });
 
       return {
@@ -537,8 +535,16 @@ export const resolvers = {
         message: "User logged in successfully"
       };
     },
-    logout: async (_: any, __: any, ctx: MyContext) => {
-      ctx.res.clearCookie(AUTH_COOKIE_NAME);
+    logout: async (_: any, __: any, { user, res }: MyContext) => {
+      if (!user) {
+        throw new GraphQLError("Not authenticated", {
+          extensions: {
+            code: "UNAUTHENTICATED"
+          }
+        });
+      }
+
+      res.clearCookie(AUTH_COOKIE_NAME);
 
       return {
         success: true,

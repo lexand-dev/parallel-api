@@ -8,7 +8,9 @@ import { users } from "@/db/schema";
 import { AUTH_SECRET_NAME } from "./constants";
 
 export const createTokenForUser = (userId: string) => {
-  const token = jwt.sign({ id: userId }, AUTH_SECRET_NAME);
+  const token = jwt.sign({ id: userId }, AUTH_SECRET_NAME, {
+    expiresIn: "2h"
+  });
   return token;
 };
 
